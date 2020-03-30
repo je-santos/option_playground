@@ -1,4 +1,5 @@
 import yfinance as yf
+import numpy as np
 
 
 ticker = 'AAPL'
@@ -17,8 +18,8 @@ The option DataFrame icludes the following data:
     -open interest: number of open positions in the contract that have not yet been offset.
 """
 
-opt_calls = opt_date_data[0]
-opt_puts  = opt_date_data[1]
+opt_calls = opt_date_data[0].copy(deep=True)
+opt_puts  = opt_date_data[1].copy(deep=True)
 
 def get_avg_bid_ask(df, percent_ask=0.5):   
     """
@@ -26,10 +27,18 @@ def get_avg_bid_ask(df, percent_ask=0.5):
     the default is 50/50
     """
     percent_bid=1-percent_ask
+    # computes the weighted average of the bid and ask
     df.insert(4,'bid/ask',df['bid']*percent_bid + df['ask']*percent_ask)
+    # computes the difference between strikes
+    df.insert(3,'diff strikes', np.diff(df['strike'],prepend=0))
+    # replaces the first value w/zero to avoid misleading diff strike
+    df.loc[0,'diff strikes']=0
+    # computes the difference between them
+    df.insert(6,'diff b/a', np.diff(df['bid/ask'],prepend=0))
     return df
 
 for financial in [opt_calls, opt_puts]: 
     try: 
         get_avg_bid_ask(financial)
     except: print('There is aready info in that df')
+    
